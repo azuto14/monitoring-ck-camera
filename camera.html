@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ambil Foto — Monitoring CK</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:system-ui,sans-serif;background:#0d2137;color:#fff;overflow:hidden}
+:root{--teal:#0ea5c8;--teal2:#0c91b0;--green:#10b981;--red:#ef4444;--amber:#f59e0b}
+
+/* Header */
+.hdr{position:fixed;top:0;left:0;right:0;height:54px;background:rgba(13,33,55,.96);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:100;border-bottom:1px solid rgba(255,255,255,.08)}
+.hdr-info{display:flex;align-items:center;gap:9px}
+.hdr-ico{width:32px;height:32px;border-radius:8px;background:rgba(14,165,200,.25);display:flex;align-items:center;justify-content:center;font-size:17px}
+.hdr-text h1{font-size:14px;font-weight:700}
+.hdr-text p{font-size:10px;opacity:.55;margin-top:1px}
+.btn-x{background:rgba(255,255,255,.1);border:none;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px}
+.btn-x:active{background:rgba(255,255,255,.2)}
+
+/* Main */
+body{padding-top:54px}
+#cam-area{position:relative;height:calc(100vh - 54px);background:#000;overflow:hidden}
+
+/* Video */
+#video{width:100%;height:100%;object-fit:cover;display:block}
+#canvas{display:none}
+
+/* Flash */
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:200;transition:opacity .06s}
+#flash.on{opacity:1}
+
+/* Controls */
+#controls{position:absolute;bottom:0;left:0;right:0;padding:12px 24px 28px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);display:none;align-items:center;justify-content:space-between}
+.btn-flip{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-flip:active{background:rgba(255,255,255,.3)}
+.btn-shutter{width:70px;height:70px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.45);cursor:pointer;flex-shrink:0;transition:transform .1s}
+.btn-shutter:active{transform:scale(.88)}
+.btn-shutter::after{content:'';position:absolute;inset:8px;border-radius:50%;background:#fff}
+.btn-shutter{position:relative}
+.ph{width:46px}
+
+/* Thumbnail strip */
+#strip{position:absolute;bottom:130px;left:0;right:0;padding:0 14px;display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#strip::-webkit-scrollbar{display:none}
+.thi{position:relative;width:52px;height:52px;flex-shrink:0;border-radius:8px;overflow:hidden;border:2px solid rgba(255,255,255,.45)}
+.thi img{width:100%;height:100%;object-fit:cover;display:block}
+.thi-x{position:absolute;top:1px;right:1px;width:18px;height:18px;border-radius:50%;background:rgba(239,68,68,.9);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:800;line-height:18px;text-align:center}
+
+/* Preview panel */
+#preview{position:absolute;inset:0;background:#000;display:none;flex-direction:column}
+#preview.on{display:flex}
+#prev-img{flex:1;object-fit:contain;width:100%;background:#111}
+.prev-acts{display:flex;gap:10px;padding:14px 16px 28px;background:#0a0a0a}
+.btn-retake{flex:1;padding:13px;border-radius:11px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.btn-use{flex:1.6;padding:13px;border-radius:11px;background:linear-gradient(135deg,var(--teal),var(--teal2));border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.btn-use:active{opacity:.85}
+
+/* Start screen */
+#scr-start{position:absolute;inset:0;background:#0d2137;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;text-align:center}
+#scr-start .big{font-size:64px}
+#scr-start h2{font-size:19px;font-weight:800}
+#scr-start p{font-size:13px;opacity:.62;line-height:1.65;max-width:280px}
+#scr-start .go{padding:13px 26px;border-radius:13px;background:var(--teal);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;margin-top:4px}
+#scr-start.hidden{display:none}
+
+/* Error screen */
+#scr-err{position:absolute;inset:0;background:#180000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;text-align:center}
+#scr-err.on{display:flex}
+#scr-err .eico{font-size:52px}
+#scr-err h2{font-size:17px;font-weight:800;color:#f87171}
+#scr-err p{font-size:13px;color:#fca5a5;line-height:1.6;max-width:280px}
+#scr-err .retry{padding:11px 22px;border-radius:11px;background:var(--red);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;margin-top:6px}
+
+/* Counter badge */
+#badge{position:fixed;top:60px;right:12px;background:var(--teal);color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;display:none;z-index:99}
+
+/* Send bar */
+#send-bar{position:fixed;bottom:0;left:0;right:0;padding:12px 14px 22px;background:linear-gradient(to top,rgba(0,0,0,.82),transparent);display:none;z-index:99}
+#btn-send{width:100%;padding:14px;border-radius:13px;background:linear-gradient(135deg,var(--teal),var(--teal2));border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+#btn-send:active{opacity:.88}
+
+/* Sending overlay */
+#ov-send{position:fixed;inset:0;background:rgba(13,33,55,.93);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#ov-send.on{display:flex}
+.sp{width:40px;height:40px;border:4px solid rgba(255,255,255,.18);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#ov-send p{font-size:14px;font-weight:600;opacity:.85}
+
+/* Success overlay */
+#ov-ok{position:fixed;inset:0;background:rgba(13,33,55,.96);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px}
+#ov-ok.on{display:flex}
+.ok-ico{font-size:58px;margin-bottom:4px}
+#ov-ok h2{font-size:20px;font-weight:800}
+#ov-ok p{font-size:13px;opacity:.65;line-height:1.6;max-width:280px}
+#ov-ok .cls{padding:13px 28px;border-radius:12px;background:var(--green);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;margin-top:6px}
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<!-- Sending overlay -->
+<div id="ov-send">
+  <div class="sp"></div>
+  <p id="send-msg">Mengirim foto...</p>
+</div>
+
+<!-- Success overlay -->
+<div id="ov-ok">
+  <div class="ok-ico">✅</div>
+  <h2 id="ok-title">Foto Terkirim!</h2>
+  <p id="ok-desc">Foto berhasil dikirim ke aplikasi dan siap diupload ke Cloudinary.</p>
+  <button class="cls" onclick="window.close()">Tutup Tab Ini</button>
+</div>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-info">
+    <div class="hdr-ico">📷</div>
+    <div class="hdr-text"><h1>Ambil Foto</h1><p>Monitoring CK — PUPR Konawe</p></div>
+  </div>
+  <button class="btn-x" onclick="doClose()">✕</button>
+</div>
+
+<div id="cam-area">
+
+  <!-- Start screen -->
+  <div id="scr-start">
+    <div class="big">📷</div>
+    <h2>Kamera Laporan</h2>
+    <p id="start-desc">Tekan tombol di bawah untuk mengaktifkan kamera dan mengambil foto laporan.</p>
+    <button class="go" id="btn-go" onclick="startCam()">Aktifkan Kamera</button>
+  </div>
+
+  <!-- Error screen -->
+  <div id="scr-err">
+    <div class="eico">📵</div>
+    <h2>Kamera Tidak Bisa Diakses</h2>
+    <p id="err-msg">Izin kamera ditolak. Ketuk ikon kamera/kunci di address bar dan izinkan, lalu tekan Coba Lagi.</p>
+    <button class="retry" onclick="startCam()">Coba Lagi</button>
+  </div>
+
+  <!-- Video stream -->
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <!-- Strip thumbnail -->
+  <div id="strip"></div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <button class="btn-flip" id="btn-flip" onclick="flipCam()" style="display:none">🔄</button>
+    <button class="btn-shutter" onclick="capture()"></button>
+    <div class="ph"></div>
+  </div>
+
+  <!-- Preview panel -->
+  <div id="preview">
+    <img id="prev-img" src="" alt="">
+    <div class="prev-acts">
+      <button class="btn-retake" onclick="retake()">🔄 Foto Ulang</button>
+      <button class="btn-use" onclick="usePhoto()">✅ Gunakan</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Counter -->
+<div id="badge"></div>
+
+<!-- Send bar -->
+<div id="send-bar">
+  <button id="btn-send" onclick="sendAll()">✅ Kirim <span id="send-n">0</span> Foto ke Aplikasi</button>
+</div>
+
+<script>
+const QP      = new URLSearchParams(location.search);
+const TOKEN   = QP.get('token') || '';
+const MAX     = 5;
+let stream    = null;
+let facing    = 'environment';
+let captured  = []; // [{id, dataUrl}]
+let prevDU    = null;
+let multiCam  = false;
+
+// ── Init ──────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  if(!TOKEN){
+    document.getElementById('start-desc').textContent = '⚠️ Buka halaman ini dari tombol "Ambil Foto" di aplikasi Monitoring CK.';
+    document.getElementById('btn-go').style.display = 'none';
+    return;
+  }
+  // Cek jumlah kamera
+  try {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    const cams = devs.filter(d=>d.kind==='videoinput');
+    multiCam   = cams.length > 1;
+    document.getElementById('btn-flip').style.display = multiCam ? 'flex' : 'none';
+  } catch(_){}
+});
+
+// ── Kamera ────────────────────────────────────────────────────
+async function startCam(){
+  hide('scr-start'); hide('scr-err');
+  try {
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:facing, width:{ideal:1920}, height:{ideal:1080}},
+      audio:false
+    });
+    const v = document.getElementById('video');
+    v.srcObject = stream;
+    await v.play();
+    document.getElementById('controls').style.display = 'flex';
+  } catch(e){
+    show('scr-err');
+    document.getElementById('err-msg').textContent = errMsg(e);
+  }
+}
+
+function errMsg(e){
+  if(e.name==='NotAllowedError') return 'Izin kamera ditolak. Ketuk ikon kunci/kamera di address bar lalu izinkan, kemudian tekan Coba Lagi.';
+  if(e.name==='NotFoundError')   return 'Tidak ada kamera yang tersedia di perangkat ini.';
+  if(e.name==='NotReadableError')return 'Kamera sedang dipakai aplikasi lain.';
+  return 'Kesalahan: ' + e.message;
+}
+
+async function flipCam(){
+  facing = facing==='environment'?'user':'environment';
+  await startCam();
+}
+
+// ── Capture ───────────────────────────────────────────────────
+function capture(){
+  if(!stream) return;
+  if(captured.length >= MAX){ alert('Maksimal '+MAX+' foto.'); return; }
+  const v = document.getElementById('video');
+  const c = document.getElementById('canvas');
+  c.width = v.videoWidth||1280; c.height = v.videoHeight||720;
+  c.getContext('2d').drawImage(v,0,0);
+  // Flash
+  const fl=document.getElementById('flash'); fl.classList.add('on'); setTimeout(()=>fl.classList.remove('on'),120);
+  prevDU = c.toDataURL('image/jpeg', 0.88);
+  showPreview(prevDU);
+}
+
+function showPreview(du){
+  document.getElementById('prev-img').src = du;
+  show('preview'); hide('controls');
+}
+
+function retake(){
+  hide('preview'); document.getElementById('controls').style.display='flex';
+  prevDU = null;
+}
+
+function usePhoto(){
+  if(!prevDU) return;
+  const id = 'p'+Date.now()+Math.random().toString(36).slice(2,5);
+  captured.push({id, dataUrl:prevDU});
+  addThumb(id, prevDU);
+  prevDU=null;
+  hide('preview'); document.getElementById('controls').style.display='flex';
+  if(captured.length>=MAX){
+    document.querySelector('.btn-shutter').style.opacity='.4';
+    document.querySelector('.btn-shutter').style.pointerEvents='none';
+  }
+  updateBar();
+}
+
+// ── Thumbnails ────────────────────────────────────────────────
+function addThumb(id, du){
+  const s=document.getElementById('strip');
+  const d=document.createElement('div'); d.className='thi'; d.id='th-'+id;
+  d.innerHTML=`<img src="${du}"><button class="thi-x" onclick="delThumb('${id}')">✕</button>`;
+  s.appendChild(d); s.scrollLeft=s.scrollWidth;
+}
+
+function delThumb(id){
+  captured=captured.filter(p=>p.id!==id);
+  document.getElementById('th-'+id)?.remove();
+  document.querySelector('.btn-shutter').style.opacity='';
+  document.querySelector('.btn-shutter').style.pointerEvents='';
+  updateBar();
+}
+
+function updateBar(){
+  const n=captured.length;
+  document.getElementById('send-n').textContent=n;
+  document.getElementById('badge').textContent=n+' foto';
+  document.getElementById('badge').style.display=n?'block':'none';
+  document.getElementById('send-bar').style.display=n?'block':'none';
+}
+
+// ── Kirim via postMessage ─────────────────────────────────────
+async function sendAll(){
+  if(!captured.length) return;
+  const target = window.opener || (window.parent!==window?window.parent:null);
+  if(!target){ alert('Jendela aplikasi tidak ditemukan. Pastikan tab aplikasi masih terbuka.'); return; }
+
+  const ov=document.getElementById('ov-send'); ov.classList.add('on');
+  const msg=document.getElementById('send-msg');
+
+  for(let i=0;i<captured.length;i++){
+    msg.textContent=`Mengirim foto ${i+1} dari ${captured.length}...`;
+    target.postMessage({type:'CAMERA_PHOTO', token:TOKEN, dataUrl:captured[i].dataUrl, index:i, total:captured.length}, '*');
+    if(i<captured.length-1) await sleep(350);
+  }
+
+  ov.classList.remove('on');
+  document.getElementById('ok-title').textContent = captured.length===1?'Foto Terkirim!':captured.length+' Foto Terkirim!';
+  document.getElementById('ov-ok').classList.add('on');
+  setTimeout(()=>{try{window.close();}catch(_){}}, 3000);
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function show(id){ const el=document.getElementById(id); if(el) el.style.display=el.classList.contains('on')?'':'flex'; }
+function hide(id){ const el=document.getElementById(id); if(el) el.style.display='none'; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function doClose(){
+  if(captured.length>0 && !confirm('Ada '+captured.length+' foto belum dikirim. Tetap tutup?')) return;
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  window.close();
+}
+</script>
+</body>
+</html>
