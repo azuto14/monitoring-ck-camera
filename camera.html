@@ -136,8 +136,8 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#000;color:#ff
   <img id="zoom-img" src="" alt="">
 </div>
 
-<!-- Screen: start -->
-<div class="scr" id="scr-start">
+<!-- Screen: start (disembunyikan; kamera otomatis aktif saat halaman dibuka) -->
+<div class="scr hidden" id="scr-start">
   <div class="scr-ico">📷</div>
   <h2>Kamera Laporan</h2>
   <p id="start-desc">Tekan tombol di bawah untuk mengaktifkan kamera. Kamu bisa mengambil beberapa foto sekaligus.</p>
@@ -252,17 +252,23 @@ let multiCam  = false;
 // ── Init ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   if(!TOKEN){
-    document.getElementById('start-desc').textContent =
+    document.querySelector('#scr-err h2').textContent = 'Halaman Tidak Valid';
+    document.getElementById('err-msg').textContent =
       '⚠️ Halaman ini harus dibuka dari tombol "Ambil Foto" di aplikasi Monitoring CK, bukan langsung dari URL.';
-    document.getElementById('btn-go').style.display = 'none';
+    document.querySelector('#scr-err .go').style.display = 'none';
+    setScr('err');
     return;
   }
+
   // Deteksi jumlah kamera
   try {
     const devs = await navigator.mediaDevices.enumerateDevices();
     multiCam = devs.filter(d=>d.kind==='videoinput').length > 1;
     document.getElementById('btn-flip').style.visibility = multiCam ? 'visible' : 'hidden';
   } catch(_){}
+
+  // Langsung aktifkan kamera tanpa menampilkan halaman/tombol "Aktifkan Kamera".
+  await startCam();
 });
 
 // ── Kamera ───────────────────────────────────────────────────
@@ -279,6 +285,8 @@ async function startCam(){
     document.getElementById('bottom').style.display = 'block';
     document.getElementById('hdr-dot').style.display = 'block';
   } catch(e){
+    document.querySelector('#scr-err h2').textContent = 'Kamera Tidak Bisa Diakses';
+    document.querySelector('#scr-err .go').style.display = '';
     setScr('err');
     document.getElementById('err-msg').textContent = errMsg(e);
   }
