@@ -137,7 +137,7 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#000;color:#ff
 </div>
 
 <!-- Screen: start -->
-<div class="scr" id="scr-start">
+<div class="scr hidden" id="scr-start">
   <div class="scr-ico">📷</div>
   <h2>Kamera Laporan</h2>
   <p id="start-desc">Tekan tombol di bawah untuk mengaktifkan kamera. Kamu bisa mengambil beberapa foto sekaligus.</p>
@@ -251,10 +251,20 @@ let multiCam  = false;
 
 // ── Init ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  // Sembunyikan halaman awal dan langsung buka kamera
+  setScr(null);
+
   if(!TOKEN){
-    document.getElementById('start-desc').textContent =
-      '⚠️ Halaman ini harus dibuka dari tombol "Ambil Foto" di aplikasi Monitoring CK, bukan langsung dari URL.';
-    document.getElementById('btn-go').style.display = 'none';
+    setScr('err');
+    document.getElementById('err-msg').textContent =
+      'Halaman ini harus dibuka dari tombol "Ambil Foto" di aplikasi Monitoring CK.';
+    return;
+  }
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setScr('err');
+    document.getElementById('err-msg').textContent =
+      'Browser ini tidak mendukung akses kamera.';
     return;
   }
 
@@ -265,59 +275,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-flip').style.visibility = multiCam ? 'visible' : 'hidden';
   } catch(_){}
 
-  await autoOpenCameraIfAllowed();
+  // Langsung jalankan kamera. Jika belum ada izin, browser akan meminta izin kamera otomatis.
+  await startCam();
 });
-
-// Cek izin kamera. Kalau sebelumnya sudah diizinkan, kamera langsung dibuka.
-// Kalau belum diizinkan, tombol "Aktifkan Kamera" tetap tampil.
-async function autoOpenCameraIfAllowed(){
-  const btn = document.getElementById('btn-go');
-  const desc = document.getElementById('start-desc');
-
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    setScr('err');
-    document.getElementById('err-msg').textContent = 'Browser ini tidak mendukung akses kamera.';
-    return;
-  }
-
-  try {
-    // Chrome/Edge mendukung navigator.permissions untuk kamera.
-    if(navigator.permissions && navigator.permissions.query){
-      const status = await navigator.permissions.query({ name: 'camera' });
-
-      if(status.state === 'granted'){
-        desc.textContent = 'Membuka kamera...';
-        btn.style.display = 'none';
-        await startCam();
-        return;
-      }
-
-      // Jika user baru mengubah izin dari address bar menjadi Allow.
-      status.onchange = () => {
-        if(status.state === 'granted') startCam();
-      };
-
-      // prompt/denied: jangan paksa getUserMedia, biarkan user tekan tombol.
-      btn.style.display = '';
-      desc.textContent = status.state === 'denied'
-        ? 'Izin kamera masih diblokir. Izinkan kamera di ikon kunci/kamera browser, lalu tekan tombol di bawah.'
-        : 'Tekan tombol di bawah untuk mengaktifkan kamera. Kamu bisa mengambil beberapa foto sekaligus.';
-      return;
-    }
-  } catch(_){}
-
-  // Fallback untuk browser yang tidak mendukung Permissions API.
-  // Kalau kamera pernah berhasil dibuka di browser ini, coba buka otomatis.
-  if(localStorage.getItem('mon_ck_camera_allowed') === '1'){
-    desc.textContent = 'Membuka kamera...';
-    btn.style.display = 'none';
-    await startCam();
-    return;
-  }
-
-  btn.style.display = '';
-  desc.textContent = 'Tekan tombol di bawah untuk mengaktifkan kamera. Kamu bisa mengambil beberapa foto sekaligus.';
-}
 
 // ── Kamera ───────────────────────────────────────────────────
 async function startCam(){
@@ -330,11 +290,9 @@ async function startCam(){
     });
     const v = document.getElementById('video');
     v.srcObject = stream; await v.play();
-    localStorage.setItem('mon_ck_camera_allowed', '1');
     document.getElementById('bottom').style.display = 'block';
     document.getElementById('hdr-dot').style.display = 'block';
   } catch(e){
-    if(e.name === 'NotAllowedError') localStorage.removeItem('mon_ck_camera_allowed');
     setScr('err');
     document.getElementById('err-msg').textContent = errMsg(e);
   }
