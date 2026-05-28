@@ -84,8 +84,11 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#000;color:#ff
 /* ── PREVIEW FULLSCREEN ── */
 #preview{position:fixed;inset:0;z-index:40;background:#000;display:none;flex-direction:column}
 #preview.on{display:flex}
-#prev-img{flex:1;object-fit:contain;width:100%;background:#0a0a0a}
-.prev-bar{display:flex;gap:10px;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 20px);background:#0a0a0a}
+.prev-top{position:absolute;top:0;left:0;right:0;z-index:3;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 18px;background:linear-gradient(to bottom,rgba(0,0,0,.78),transparent)}
+.btn-prev-back{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.22);color:#fff;font-size:13px;font-weight:800;cursor:pointer;backdrop-filter:blur(5px)}
+.btn-prev-back:active{background:rgba(255,255,255,.18);transform:scale(.98)}
+#prev-img{flex:1 1 auto;min-height:0;object-fit:contain;width:100%;background:#0a0a0a}
+.prev-bar{flex-shrink:0;display:flex;gap:10px;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 20px);background:#0a0a0a;position:relative;z-index:4}
 .btn-retake{flex:1;padding:14px;border-radius:13px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-retake:active{background:rgba(255,255,255,.2)}
 .btn-use{flex:1.8;padding:14px;border-radius:13px;background:linear-gradient(135deg,var(--teal),#0c91b0);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(14,165,200,.4)}
@@ -217,6 +220,11 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#000;color:#ff
 
 <!-- Preview -->
 <div id="preview">
+  <div class="prev-top">
+    <button class="btn-prev-back" onclick="backToCamera()">
+      ← Kembali
+    </button>
+  </div>
   <img id="prev-img" src="" alt="">
   <div class="prev-bar">
     <button class="btn-retake" onclick="retake()">
@@ -321,9 +329,13 @@ function capture(){
   document.getElementById('preview').classList.add('on');
 }
 
-function retake(){
+function backToCamera(){
   document.getElementById('preview').classList.remove('on');
   prevDU = null;
+}
+
+function retake(){
+  backToCamera();
 }
 
 function usePhoto(){
