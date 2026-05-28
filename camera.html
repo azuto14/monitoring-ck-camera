@@ -137,7 +137,7 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#000;color:#ff
 </div>
 
 <!-- Screen: start -->
-<div class="scr hidden" id="scr-start">
+<div class="scr" id="scr-start">
   <div class="scr-ico">📷</div>
   <h2>Kamera Laporan</h2>
   <p id="start-desc">Tekan tombol di bawah untuk mengaktifkan kamera. Kamu bisa mengambil beberapa foto sekaligus.</p>
@@ -251,32 +251,18 @@ let multiCam  = false;
 
 // ── Init ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
-  // Sembunyikan halaman awal dan langsung buka kamera
-  setScr(null);
-
   if(!TOKEN){
-    setScr('err');
-    document.getElementById('err-msg').textContent =
-      'Halaman ini harus dibuka dari tombol "Ambil Foto" di aplikasi Monitoring CK.';
+    document.getElementById('start-desc').textContent =
+      '⚠️ Halaman ini harus dibuka dari tombol "Ambil Foto" di aplikasi Monitoring CK, bukan langsung dari URL.';
+    document.getElementById('btn-go').style.display = 'none';
     return;
   }
-
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    setScr('err');
-    document.getElementById('err-msg').textContent =
-      'Browser ini tidak mendukung akses kamera.';
-    return;
-  }
-
   // Deteksi jumlah kamera
   try {
     const devs = await navigator.mediaDevices.enumerateDevices();
     multiCam = devs.filter(d=>d.kind==='videoinput').length > 1;
     document.getElementById('btn-flip').style.visibility = multiCam ? 'visible' : 'hidden';
   } catch(_){}
-
-  // Langsung jalankan kamera. Jika belum ada izin, browser akan meminta izin kamera otomatis.
-  await startCam();
 });
 
 // ── Kamera ───────────────────────────────────────────────────
