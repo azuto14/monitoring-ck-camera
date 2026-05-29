@@ -121,12 +121,12 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#000;color:#ff
 <!-- Overlays -->
 <div class="ov" id="ov-send">
   <div class="sp"></div>
-  <p id="send-msg">Mengirim foto ke aplikasi...</p>
+  <p id="send-msg">Menambahkan foto ke form laporan...</p>
 </div>
 <div class="ov" id="ov-ok">
   <div class="ov-ico">✅</div>
-  <h2 id="ok-title">Foto Terkirim!</h2>
-  <p id="ok-desc">Foto berhasil dikirim. Tab ini akan tertutup otomatis.</p>
+  <h2 id="ok-title">Foto Ditambahkan!</h2>
+  <p id="ok-desc">Foto berhasil masuk ke form laporan. Tab ini akan tertutup otomatis.</p>
   <button class="cls" onclick="window.close()">Tutup Tab Ini</button>
 </div>
 
@@ -136,7 +136,7 @@ html,body{height:100%;font-family:system-ui,sans-serif;background:#000;color:#ff
   <img id="zoom-img" src="" alt="">
 </div>
 
-<!-- Screen: start (disembunyikan; kamera otomatis aktif saat halaman dibuka) -->
+<!-- Screen: start -->
 <div class="scr hidden" id="scr-start">
   <div class="scr-ico">📷</div>
   <h2>Kamera Laporan</h2>
@@ -252,22 +252,20 @@ let multiCam  = false;
 // ── Init ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   if(!TOKEN){
-    document.querySelector('#scr-err h2').textContent = 'Halaman Tidak Valid';
-    document.getElementById('err-msg').textContent =
+    document.getElementById('scr-start').classList.remove('hidden');
+    document.getElementById('start-desc').textContent =
       '⚠️ Halaman ini harus dibuka dari tombol "Ambil Foto" di aplikasi Monitoring CK, bukan langsung dari URL.';
-    document.querySelector('#scr-err .go').style.display = 'none';
-    setScr('err');
+    document.getElementById('btn-go').style.display = 'none';
     return;
   }
 
-  // Deteksi jumlah kamera
+  // Deteksi jumlah kamera, lalu langsung aktifkan kamera tanpa halaman pembuka.
   try {
     const devs = await navigator.mediaDevices.enumerateDevices();
     multiCam = devs.filter(d=>d.kind==='videoinput').length > 1;
     document.getElementById('btn-flip').style.visibility = multiCam ? 'visible' : 'hidden';
   } catch(_){}
 
-  // Langsung aktifkan kamera tanpa menampilkan halaman/tombol "Aktifkan Kamera".
   await startCam();
 });
 
@@ -285,8 +283,6 @@ async function startCam(){
     document.getElementById('bottom').style.display = 'block';
     document.getElementById('hdr-dot').style.display = 'block';
   } catch(e){
-    document.querySelector('#scr-err h2').textContent = 'Kamera Tidak Bisa Diakses';
-    document.querySelector('#scr-err .go').style.display = '';
     setScr('err');
     document.getElementById('err-msg').textContent = errMsg(e);
   }
@@ -430,7 +426,7 @@ async function sendAll(){
   ov.classList.add('on');
 
   for(let i=0; i<captured.length; i++){
-    msg.textContent = `Mengirim foto ${i+1} dari ${captured.length}...`;
+    msg.textContent = `Menambahkan foto ${i+1} dari ${captured.length} ke form...`;
     target.postMessage({
       type:    'CAMERA_PHOTO',
       token:   TOKEN,
@@ -446,7 +442,7 @@ async function sendAll(){
 
   // Tampilkan success
   document.getElementById('ok-title').textContent =
-    captured.length===1 ? 'Foto Terkirim!' : captured.length+' Foto Terkirim!';
+    captured.length===1 ? 'Foto Ditambahkan!' : captured.length+' Foto Ditambahkan!';
   document.getElementById('ov-ok').classList.add('on');
 
   // Auto close setelah 2.5 detik
